@@ -1,4 +1,4 @@
-canvas.webgl
+Canvas.WebGL
 ============
 
 2D Canvas implementation in WebGL
