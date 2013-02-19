@@ -64,6 +64,7 @@ var WebGLCanvas = (function () {
       assert (matrix.length === 9, "Invalid matrix size.");
       gl.uniformMatrix3fv(location, false, matrix);
     },
+
     createVertexBuffer: function createBuffer(vertices) {
       var gl = this.gl;
       var buffer = gl.createBuffer();

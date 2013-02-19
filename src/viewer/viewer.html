@@ -4,7 +4,11 @@
   <title></title>
 </head>
 <body style="background-color: #2c2c2c">
+<script src="../../lib/tessellate/_tessellate.js"></script>
+<script src="../../lib/tessellate/tessellate.js"></script>
+<script src="../util.js"></script>
 <script src="../gl.js"></script>
+<script src="../canvas.js"></script>
 <style TYPE="text/css">
   body {
     color: white;
@@ -25,6 +29,13 @@
       Canvas
       <span id="Canvas.FPS"></span>
     </td>
+  </tr>
+  <tr>
+    <td>
+      <canvas id="Canvas" width="1024" height="256"></canvas>
+    </td>
+  </tr>
+  <tr>
     <td style="padding-left: 10px; font-weight: bold;">
       Canvas.WebGL
       <span id="Canvas.WebGL.FPS"></span>
@@ -32,10 +43,7 @@
   </tr>
   <tr>
     <td>
-      <canvas id="Canvas" width="512" height="512"></canvas>
-    </td>
-    <td>
-      <canvas id="Canvas.WebGL" width="512" height="512"></canvas>
+      <canvas id="Canvas.WebGL" width="1024" height="256"></canvas>
     </td>
   </tr>
 </table>

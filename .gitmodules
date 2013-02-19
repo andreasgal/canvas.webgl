@@ -1,0 +1,3 @@
+[submodule "lib/tessellate"]
+	path = lib/tessellate
+	url = https://github.com/cscheid/tessellate.git
