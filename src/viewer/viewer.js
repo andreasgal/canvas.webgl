@@ -142,6 +142,10 @@ function isPointBelow(p, q) {
   return p.y < q.y || p.y === q.y && p.x > q.x;
 }
 
+function polyline(points, width) {
+  assert (points.length === 3);
+}
+
 function drawPath() {
   var points = [];
   for (var i = 0; i < 4; i++) {
@@ -149,16 +153,12 @@ function drawPath() {
   }
   points.push(points[0]);
 
-  points = randomPolygon(100);
-
-  /*
-  canvasContext.beginPath();
-  canvasContext.moveTo(points[0].x, points[0].y);
-  for (var i = 1; i < points.length - 1; i += 2) {
-    canvasContext.quadraticCurveTo(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
-  }
-  canvasContext.stroke();
-  */
+  // points = randomPolygon(100);
+  points = polyline([
+    {x: 10, y: 10},
+    {x: 100, y: 100},
+    {x: 200, y: 10}
+  ]);
 
   canvasContext.fillStyle = "rgba(100,100,100,0.5)";
   canvasContext.strokeStyle = "#000000";
@@ -218,7 +218,7 @@ function drawPath() {
   */
 }
 
-drawPath();
+// drawPath();
 
 /*
 var canvasWebGLContext = canvasWebGL.getContext("2d.gl");
@@ -233,3 +233,113 @@ var canvasWebGLContext = canvasWebGL.getContext("2d.gl");
 });
 
 */
+
+canvas.onmousemove = function (m) {
+  var ctx = canvasContext;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.beginPath();
+  ctx.lineWidth = 30;
+  var points = [new Vector(100, 100)];
+  points.push(new Vector(m.layerX, m.layerY));
+  points.push(new Vector(100, 200));
+  points.push(new Vector(400, 100));
+  ctx.moveTo(points[0].x, points[0].y);
+  for (var i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.stroke();
+
+  stroke(move(points, 0, 300), 30);
+};
+
+function move(polyline, x, y) {
+  return polyline.map(function (v) {
+    return v.add(new Vector(x, y));
+  });
+}
+
+function strokeSegment(a, b, width) {
+  var radius = width / 2;
+  var normal = b.subtract(a).perpendicular().normalize();
+  var up = normal.multiply(radius);
+  var down = normal.multiply(-radius);
+  return [
+    a.add(up),
+    b.add(up),
+    b.add(down),
+    a.add(down)
+  ];
+}
+
+function stroke(p, width) {
+  // var segment = strokeSegment(p[0], p[1], width);
+  // drawLines(strokeSegment(p[0], p[1], width), true);
+
+  for (var i = 0; i < p.length - 1; i++) {
+    drawLines(strokeSegment(p[i], p[i + 1], width), true);
+  }
+
+  var polygon = [];
+  for (var i = 0; i < p.length - 2; i++) {
+    var a = p[i];
+    var b = p[i + 1];
+    var c = p[i + 2];
+
+    var ab = strokeSegment(a, b, width);
+    var bc = strokeSegment(b, c, width);
+
+    drawLines(move(ab, 0, 200), true);
+    drawLines(move(bc, 0, 200), true);
+    // drawLines(strokeSegment(p[i], p[i + 1], width), true);
+  }
+}
+
+
+
+function drawLines(p, close, offset) {
+  var ctx = canvasContext;
+  ctx.beginPath();
+  ctx.lineWidth = 1;
+  if (offset) {
+    p = move(p, offset);
+  }
+  ctx.moveTo(p[0].x, p[0].y);
+  for (var i = 1; i < p.length; i++) {
+    ctx.lineTo(p[i].x, p[i].y);
+  }
+  if (close) {
+    ctx.lineTo(p[0].x, p[0].y);
+  }
+  ctx.stroke();
+}
+
+var Vector = (function () {
+  function constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  constructor.prototype.perpendicular = function (clockwise) {
+    if (clockwise) {
+      return new Vector(-this.y, this.x);
+    } else {
+      return new Vector(this.y, -this.x);
+    }
+  };
+  constructor.prototype.getLength = function () {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  };
+  constructor.prototype.add = function (v) {
+    return new Vector(this.x + v.x, this.y + v.y);
+  };
+  constructor.prototype.subtract = function (v) {
+    return new Vector(this.x - v.x, this.y - v.y);
+  };
+  constructor.prototype.multiply = function (z) {
+    return new Vector(this.x * z, this.y * z);
+  };
+  constructor.prototype.normalize = function () {
+    var length = this.getLength();
+    return new Vector(this.x / length, this.y / length);
+  };
+  return constructor;
+})();
