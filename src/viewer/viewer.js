@@ -23,6 +23,13 @@ function time(fn, count) {
 }
 
 var canvasContext = canvas.getContext("2d");
+if (window.devicePixelRatio == 2) {
+  canvas.width *= window.devicePixelRatio;
+  canvas.height *= window.devicePixelRatio;
+  canvas.style.width = (canvas.width / window.devicePixelRatio) + "px";
+  canvas.style.height = (canvas.height / window.devicePixelRatio) + "px";
+  canvasContext.scale(2, 2);
+}
 
 
 function randomColor() {
