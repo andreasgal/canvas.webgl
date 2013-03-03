@@ -583,4 +583,45 @@ function findIntersections(lines) {
         break;
     }
   }
-}
+}var Multiple = (function () {
+  function constructor(contexts) {
+    this.contexts = contexts;
+  }
+
+  function defineFunctionProxy(obj, name) {
+    Object.defineProperty(obj, name, {
+      value: function () {
+        var args = arguments;
+        this.contexts.forEach(function (c) {
+          c[name].apply(c, args);
+        })
+      }
+    });
+  }
+
+  function definePropertyProxy(obj, name) {
+    Object.defineProperty(obj, name, {
+      get: function () {
+        return this.contexts[0][name];
+      },
+      set: function (v) {
+        this.contexts.forEach(function (c) {
+          c[name] = v;
+        });
+      }
+    });
+  }
+  definePropertyProxy(constructor.prototype, 'strokeStyle');
+  definePropertyProxy(constructor.prototype, 'fillStyle');
+  definePropertyProxy(constructor.prototype, 'lineWidth');
+
+  defineFunctionProxy(constructor.prototype, 'clearRect');
+  defineFunctionProxy(constructor.prototype, 'fillRect');
+
+
+  defineFunctionProxy(constructor.prototype, 'beginPath');
+  defineFunctionProxy(constructor.prototype, 'moveTo');
+  defineFunctionProxy(constructor.prototype, 'lineTo');
+  defineFunctionProxy(constructor.prototype, 'stroke');
+  return constructor;
+})();
