@@ -23,6 +23,9 @@ function time(fn, count) {
 }
 
 var canvasContext = canvas.getContext("2d");
+canvas.context = canvasContext;
+
+/*
 if (window.devicePixelRatio == 2) {
   canvas.width *= window.devicePixelRatio;
   canvas.height *= window.devicePixelRatio;
@@ -30,7 +33,7 @@ if (window.devicePixelRatio == 2) {
   canvas.style.height = (canvas.height / window.devicePixelRatio) + "px";
   canvasContext.scale(2, 2);
 }
-
+*/
 
 function randomColor() {
   return '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
@@ -56,7 +59,10 @@ function randomPoint(padding) {
   if (padding === undefined) {
     padding = 0;
   }
-  return {x: padding + random(canvas.width - padding * 2), y: padding + random(canvas.height - padding * 2)};
+  return new Vector(
+    padding + random(canvas.width - padding * 2),
+    padding + random(canvas.height - padding * 2)
+  );
 }
 
 function randomLine(padding) {
@@ -247,7 +253,7 @@ var canvasWebGLContext = canvasWebGL.getContext("2d.gl");
 
 */
 
-canvas.onmousemove = function (m) {
+canvas.onmousemove2 = function (m) {
   var ctx = canvasContext;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.beginPath();
@@ -276,11 +282,11 @@ canvas.onmousemove = function (m) {
   ctx.stroke();
 
 
-  var outer = circle({x: 100, y: 300}, radius + 30 / 2, radius);
-  var inner = circle({x: 100, y: 300}, radius - 30 / 2, radius);
+  var outer = circle({x: 100, y: 300}, radius + 10 / 2, radius);
+  var inner = circle({x: 100, y: 300}, radius - 10 / 2, radius);
 
   var loops = [vertexBuffer(outer), vertexBuffer(inner.reverse())];
-  drawTesselation(loops);
+  // drawTesselation(loops);
   // drawLines(seg, true);
 };
 
@@ -468,59 +474,34 @@ function stroke2(p, width) {
   */
 }
 
-function drawLines(p, close, offset) {
-  var ctx = canvasContext;
-  ctx.beginPath();
-  ctx.lineWidth = 1;
-  if (offset) {
-    p = move(p, offset);
-  }
-  ctx.moveTo(p[0].x, p[0].y);
+function drawLines(c, p, close) {
+  c.beginPath();
+  c.lineWidth = 2;
+  c.moveTo(p[0].x, p[0].y);
   for (var i = 1; i < p.length; i++) {
-    ctx.lineTo(p[i].x, p[i].y);
+    c.lineTo(p[i].x, p[i].y);
   }
   if (close) {
-    ctx.lineTo(p[0].x, p[0].y);
+    c.lineTo(p[0].x, p[0].y);
   }
-  ctx.stroke();
+  if (close) {
+    c.fillStyle = "black";
+    c.fill();
+  } else {
+    c.strokeStyle = "white";
+    c.stroke();
+  }
 }
 
-var Vector = (function () {
-  function constructor(x, y) {
-    this.x = x;
-    this.y = y;
+function drawPoints(c, p) {
+  c.beginPath();
+  c.fillStyle = "gray";
+  for (var i = 0; i < p.length; i++) {
+    c.moveTo(p[i].x, p[i].y);
+    c.arc(p[i].x, p[i].y, 1.5, 0, Math.PI * 2, true);
   }
-  constructor.prototype.perpendicular = function (clockwise) {
-    if (clockwise) {
-      return new Vector(-this.y, this.x);
-    } else {
-      return new Vector(this.y, -this.x);
-    }
-  };
-  constructor.prototype.getLength = function () {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
-  };
-  constructor.prototype.add = function (v) {
-    return new Vector(this.x + v.x, this.y + v.y);
-  };
-  constructor.prototype.subtract = function (v) {
-    return new Vector(this.x - v.x, this.y - v.y);
-  };
-  constructor.prototype.multiply = function (z) {
-    return new Vector(this.x * z, this.y * z);
-  };
-  constructor.prototype.normalize = function () {
-    var length = this.getLength();
-    return new Vector(this.x / length, this.y / length);
-  };
-  /**
-   * < 0 if ab, bc form a left turn, 0 if colinear, or > 0 otherwise.
-   */
-  constructor.signedArea = function (a, b, c) {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-  };
-  return constructor;
-})();
+  c.fill();
+}
 
 function drawSegments() {
   var count = 5;
@@ -583,7 +564,21 @@ function findIntersections(lines) {
         break;
     }
   }
-}var Multiple = (function () {
+}
+
+
+
+var canvasWebGLContext = canvasWebGL.getContext("2d.gl");
+canvasWebGL.context = canvasWebGLContext;
+
+function canvasMousePosition(canvas, event) {
+  var rect = canvas.getBoundingClientRect();
+  return new Vector(event.clientX - rect.left, event.clientY - rect.top);
+}
+
+// canvasWebGLContext.fillRect(0, 0, 800, 800);
+
+var Multiple = (function () {
   function constructor(contexts) {
     this.contexts = contexts;
   }
@@ -593,7 +588,7 @@ function findIntersections(lines) {
       value: function () {
         var args = arguments;
         this.contexts.forEach(function (c) {
-          c[name].apply(c, args);
+          c[name] && c[name].apply(c, args);
         })
       }
     });
@@ -621,7 +616,180 @@ function findIntersections(lines) {
 
   defineFunctionProxy(constructor.prototype, 'beginPath');
   defineFunctionProxy(constructor.prototype, 'moveTo');
+
   defineFunctionProxy(constructor.prototype, 'lineTo');
+  defineFunctionProxy(constructor.prototype, 'quadraticCurveTo');
+  defineFunctionProxy(constructor.prototype, 'arc');
   defineFunctionProxy(constructor.prototype, 'stroke');
+
+  defineFunctionProxy(constructor.prototype, 'scale');
+  defineFunctionProxy(constructor.prototype, 'save');
+  defineFunctionProxy(constructor.prototype, 'restore');
+
   return constructor;
 })();
+
+var c = new Multiple([canvas.context, canvasWebGL.context]);
+// var c = new Multiple([canvas.context]);
+// var c = new Multiple([canvasWebGL.context]);
+
+console.info(c.fillStyle);
+
+function drawSimlyFace(c, m) {
+  c.beginPath();
+  c.arc(150, 150, 100, 0, Math.PI * 2, false); // Outer circle
+  if (true) {
+    c.moveTo(220, 150);
+    c.arc(150, 150, 70, 0, Math.PI, false);   // Mouth (clockwise)
+    c.moveTo(130, 130);
+    c.arc(120, 130, 10, 0, Math.PI * 2, false);  // Left eye
+    c.moveTo(190, 130);
+    c.arc(180, 130, 10, 0, Math.PI * 2, false);  // Right eye
+  }
+  c.stroke();
+}
+
+function drawCurves(c, m) {
+  /*
+  c.beginPath();
+  c.moveTo(10, 10);
+  c.quadraticCurveTo(m.x, m.y, 300, 200);
+  // c.quadraticCurveTo(400, 200, 200, 200);
+  c.stroke();
+  */
+
+  var ctx = canvas.context;
+
+  var a = new Vector(m.x, m.y);
+  var b = new Vector(m.x + 100, m.y);
+  var c = new Vector(200, 300);
+  var d = new Vector(200, 350);
+
+  var e = new Vector(c.x, c.y + 100);
+  var f = new Vector(50, 150);
+  var g = new Vector(500, 150);
+
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  // ctx.bezierCurveTo(b.x, b.y, c.x, c.y, d.x, d.y);
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 30;
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.fillStyle = "orange";
+
+  if (true) {
+
+    /*
+    var stroke = adaptiveBezierPoints(a, b, c, d, 30);
+    drawStroke(ctx, stroke);
+
+    var stroke = adaptiveBezierPoints(d, e, f, g, 30);
+    drawStroke(ctx, stroke);
+    */
+
+    for (var i = 0; i < 10; i++) {
+      a = randomPoint();
+      b = randomPoint();
+      c = randomPoint();
+      d = randomPoint();
+      var stroke = adaptiveBezierPoints(a, b, c, d, 10);
+      drawStroke(ctx, stroke);
+    }
+
+    /*
+    adaptiveBezierPoints(a, b, c, d).path.forEach(function (p) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      var color = "red,white,green,orange,yellow,purple".split(",")[p.depth || 0];
+      ctx.fillStyle = color;
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2, true);
+      ctx.fill();
+    });
+    */
+
+  }
+  else if (false) {
+    var steps = approximateBezierLength(a, b, c, d) / 30 | 0;
+    bezierPointsWithForwardDifferencing(a, b, c, d, steps).forEach(function (p) {
+      ctx.moveTo(p.x, p.y);
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2, true);
+    });
+  } else if (false) {
+    for (var i = 0; i < 10; i++) {
+      var p = bezierPointAt(a, b, c, d, (1 / 10) * i);
+      ctx.moveTo(p.x, p.y);
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2, true);
+    }
+  }
+}
+
+function drawStroke(ctx, stroke) {
+  var polygon = stroke.upper.concat(stroke.lower.reverse());
+  drawLines(ctx, polygon, true);
+  // drawLines(ctx, stroke.path);
+  drawPoints(ctx, stroke.path);
+}
+
+function drawLine(c, m) {
+  c.beginPath();
+  c.moveTo(100, 100);
+  c.lineTo(m.x, m.y);
+  c.stroke();
+}
+
+canvas.onmousemove = canvasWebGL.onmousemove = function (m) {
+  var mouse = canvasMousePosition(m.target, m);
+
+  c.clearRect(0, 0, canvasWebGL.width, canvasWebGL.height);
+
+  c.strokeStyle = "rgba(0, 0, 0, 0.9)";
+
+  // c.lineWidth = mouse.getLength() / 10;
+  c.lineWidth = 2;
+  var s = mouse.getLength() / 100;
+  c.save();
+  c.scale(1, 1);
+
+  // drawLine(c, mouse);
+
+  // drawSimlyFace(c, mouse);
+
+  drawCurves(c, mouse);
+  c.restore();
+
+
+  // ctx.arc(100, 100, radius, 0, Math.PI * 2, true);
+
+
+  /*
+  c.fillStyle = "green";
+  c.fillRect(mouse.x, mouse.y, 10, 10);
+
+  c.lineWidth = 5;
+
+  c.strokeStyle = "blue";
+  c.beginPath();
+  c.moveTo(10, 10);
+  var delta = mouse.x / 20;
+  for (var i = 1; i < 20; i++) {
+    c.lineTo(i * delta, mouse.y);
+    c.lineTo((i + 1) * delta, 10);
+  }
+  c.stroke();
+
+  c.strokeStyle = "red";
+  c.beginPath();
+  c.moveTo(30, 30);
+  c.lineTo(30, mouse.y);
+  c.lineTo(mouse.x, 30);
+  c.lineTo(mouse.x, mouse.y);
+  c.stroke();
+  */
+
+
+};
